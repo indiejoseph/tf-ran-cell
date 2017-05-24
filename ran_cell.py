@@ -28,30 +28,15 @@ class RANCell(RNNCell):
     return self._num_units
 
   def __call__(self, inputs, state, scope=None):
-    """
-    Deriving RAN from GRU [Sec 4.4]
-    """
     with _checked_scope(self, scope or "ran_cell", reuse=self._reuse):
-      with vs.variable_scope("input_x"):
-        lx = _linear(inputs, self._num_units, True)
-
-      with vs.variable_scope("input_h"):
-        lh = _linear(state, self._num_units, True)
-
-      i = tf.nn.sigmoid(lh + lx)
-
-      with vs.variable_scope("output_x"):
-        lx = _linear(inputs, self._num_units, True)
-
-      with vs.variable_scope("output_h"):
-        lh = _linear(state, self._num_units, True)
-
-      o = tf.nn.sigmoid(lh + lx)
+      with vs.variable_scope("gates"):
+        value = tf.nn.sigmoid(_linear([state, inputs], 2 * self._num_units, True))
+        i, f = array_ops.split(value=value, num_or_size_splits=2, axis=1)
 
       with vs.variable_scope("candidate"):
-        c = self._activation(_linear([state, inputs], self._num_units, True))
-        c = i * c + (1 - i) * state
+        c = _linear([inputs], self._num_units, True)
 
-      new_h = c * o
+      new_c = i * c + f * state
+      new_h = self._activation(c)
 
-    return new_h, new_h
+    return new_h, new_c
