@@ -9,7 +9,7 @@ from tensorflow.contrib.layers import xavier_initializer as glorot
 from ran_cell import RANCell
 
 flags = tf.app.flags
-flags.DEFINE_string("rnn_type", "RAN", "rnn type [RAN, LSTM, GRU]")
+flags.DEFINE_string("rnn_type", "RAN", "rnn type [RAN, RAN_LN, LSTM, GRU]")
 FLAGS = flags.FLAGS
 
 def main(_):
@@ -41,6 +41,8 @@ def main(_):
       cell = LSTMCell(num_cells)
     elif FLAGS.rnn_type == "GRU":
       cell = GRUCell(num_cells)
+    elif FLAGS.rnn_type == "RAN_LN":
+      cell = RANCell(num_cells, normalize=True)
 
     states = cell.zero_state(batch_size, tf.float32)
     outputs, states = tf.nn.dynamic_rnn(cell, x, l, states)
