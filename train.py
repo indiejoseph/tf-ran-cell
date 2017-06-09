@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 import dataplumbing as dp
 from tensorflow.contrib import rnn
-from tensorflow.contrib.rnn import GRUCell, LSTMCell
+from tensorflow.contrib.rnn import GRUCell, BasicLSTMCell, LayerNormBasicLSTMCell
 from tensorflow.contrib.rnn.python.ops import core_rnn
 from tensorflow.contrib.layers import xavier_initializer as glorot
 from ran_cell import RANCell
@@ -20,7 +20,7 @@ def main(_):
   num_cells = 250
   num_classes = dp.train.num_classes
   initialization_factor = 1.0
-  num_iterations = 1000
+  num_iterations = 500
   batch_size = 100
   learning_rate = 0.001
   current_step = 0
@@ -38,7 +38,9 @@ def main(_):
     if FLAGS.rnn_type == "RAN":
       cell = RANCell(num_cells)
     elif FLAGS.rnn_type == "LSTM":
-      cell = LSTMCell(num_cells)
+      cell = BasicLSTMCell(num_cells)
+    elif FLAGS.rnn_type == "LSTM_LN":
+      cell = LayerNormBasicLSTMCell(num_cells)
     elif FLAGS.rnn_type == "GRU":
       cell = GRUCell(num_cells)
     elif FLAGS.rnn_type == "RAN_LN":
@@ -52,7 +54,7 @@ def main(_):
                                         maxval=np.sqrt(6.0*initialization_factor / (num_cells + num_classes))))
     b_o = tf.Variable(tf.zeros([num_classes]))
 
-    if FLAGS.rnn_type == "LSTM":
+    if FLAGS.rnn_type == "LSTM" or FLAGS.rnn_type == "LSTM_LN":
       ly = tf.matmul(states.h, W_o) + b_o
     else:
       ly = tf.matmul(states, W_o) + b_o
