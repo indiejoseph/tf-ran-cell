@@ -7,9 +7,10 @@ from tensorflow.contrib.rnn import GRUCell, BasicLSTMCell, LayerNormBasicLSTMCel
 from tensorflow.contrib.rnn.python.ops import core_rnn
 from tensorflow.contrib.layers import xavier_initializer as glorot
 from ran_cell import RANCell
+from ran_cell_v2 import RANCellv2
 
 flags = tf.app.flags
-flags.DEFINE_string("rnn_type", "RAN", "rnn type [RAN, RAN_LN, LSTM, GRU]")
+flags.DEFINE_string("rnn_type", "RAN", "rnn type [RAN, RANv2, RAN_LNv2, RAN_LN, LSTM, GRU]")
 FLAGS = flags.FLAGS
 
 def main(_):
@@ -25,8 +26,8 @@ def main(_):
   learning_rate = 0.001
   current_step = 0
 
-  initializer = tf.random_uniform_initializer(minval = -np.sqrt(6.0 * 1.0 / (num_cells + num_classes)),
-                                              maxval = np.sqrt(6.0 * 1.0 / (num_cells + num_classes)))
+  initializer = tf.random_uniform_initializer(minval=-np.sqrt(6.0 * 1.0 / (num_cells + num_classes)),
+                                              maxval=np.sqrt(6.0 * 1.0 / (num_cells + num_classes)))
 
   with tf.variable_scope("train", initializer=initializer):
     s = tf.Variable(tf.random_normal([num_cells], stddev=np.sqrt(initialization_factor))) # Determines initial state
@@ -37,6 +38,8 @@ def main(_):
 
     if FLAGS.rnn_type == "RAN":
       cell = RANCell(num_cells)
+    elif FLAGS.rnn_type == "RANv2":
+      cell = RANCellv2(num_cells)
     elif FLAGS.rnn_type == "LSTM":
       cell = BasicLSTMCell(num_cells)
     elif FLAGS.rnn_type == "LSTM_LN":
@@ -45,6 +48,8 @@ def main(_):
       cell = GRUCell(num_cells)
     elif FLAGS.rnn_type == "RAN_LN":
       cell = RANCell(num_cells, normalize=True)
+    elif FLAGS.rnn_type == "RAN_LNv2":
+      cell = RANCellv2(num_cells, normalize=True)
 
     states = cell.zero_state(batch_size, tf.float32)
     outputs, states = tf.nn.dynamic_rnn(cell, x, l, states)
@@ -54,7 +59,8 @@ def main(_):
                                         maxval=np.sqrt(6.0*initialization_factor / (num_cells + num_classes))))
     b_o = tf.Variable(tf.zeros([num_classes]))
 
-    if FLAGS.rnn_type == "LSTM" or FLAGS.rnn_type == "LSTM_LN":
+    if FLAGS.rnn_type == "LSTM" or FLAGS.rnn_type == "LSTM_LN" \
+      or FLAGS.rnn_type == "RANv2"  or FLAGS.rnn_type == "RAN_LNv2":
       ly = tf.matmul(states.h, W_o) + b_o
     else:
       ly = tf.matmul(states, W_o) + b_o
